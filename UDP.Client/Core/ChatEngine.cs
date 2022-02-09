@@ -11,7 +11,6 @@ namespace UDP.Client.Core
     internal class ChatEngine
     {
         private readonly string _userName;
-        private readonly int _localListeningPort;
         private readonly NetworkService _networkService;
 
         public ChatEngine(
@@ -19,31 +18,26 @@ namespace UDP.Client.Core
         {
             _networkService = new NetworkService();
             _userName = userName;
-            _localListeningPort = _networkService
-                .GetFreeLocalPort();
         }
 
         public void RunChat()
         {
-            var sendingTask = Task.Run(
-                async () => await RunSendingClientAsync());
-
             var receivingTask = Task.Run(
                 () => RunReceivingClient());
+            var sendingTask = Task.Run(
+                async () => await RunSendingClientAsync());
 
             Task.WaitAny(sendingTask, receivingTask);
         }
 
         private void RunReceivingClient()
         {
-            var receiver = new UdpClient(
-                _networkService.GetFreeLocalPort());
+            var receiver = new UdpClient(8001);
             receiver.JoinMulticastGroup(
                 _networkService.GetMulticastAddress(), 
                 20);
 
             IPEndPoint remoteIp = null;
-            var localAddress = _networkService.GetLocalIp();
 
             try
             {
@@ -51,8 +45,7 @@ namespace UDP.Client.Core
                 {
                     var data = receiver.Receive(ref remoteIp);
 
-                    if (remoteIp.Address.ToString()
-                        .Equals(localAddress))
+                    if (remoteIp.Address.IsLocalAddress())
                     {
                         continue;
                     }

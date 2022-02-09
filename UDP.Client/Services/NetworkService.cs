@@ -22,24 +22,7 @@ namespace UDP.Client.Services
             => IPAddress.Parse(MULTICAST_IP);
 
         public IPAddress GetBroadcastAddress()
-            => IPAddress.Broadcast;
-
-        public string GetLocalIp()
-        {
-            var localIp = string.Empty;
-            var host = Dns.GetHostEntry(
-                Dns.GetHostName());
-            foreach (IPAddress ip in host.AddressList)
-            {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    localIp = ip.ToString();
-                    break;
-                }
-            }
-
-            return localIp;
-        }
+            => IPAddress.Broadcast;       
 
         public int GetRemotePort()
             => REMOTE_PORT;
