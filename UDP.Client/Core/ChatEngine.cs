@@ -36,6 +36,7 @@ namespace UDP.Client.Core
             receiver.JoinMulticastGroup(
                 _networkService.GetMulticastAddress(), 
                 20);
+            receiver.MulticastLoopback = false;
 
             IPEndPoint remoteIp = null;
 
@@ -45,11 +46,6 @@ namespace UDP.Client.Core
                 {
                     var data = receiver.Receive(ref remoteIp);
 
-                    if (remoteIp.Address.IsLocalAddress())
-                    {
-                        continue;
-                    }
-                        
                     string message = Encoding.Unicode.GetString(data);
                     Console.WriteLine(message);
                 }
