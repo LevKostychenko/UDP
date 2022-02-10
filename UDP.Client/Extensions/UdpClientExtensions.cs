@@ -44,6 +44,31 @@ namespace UDP.Client.Extensions
                     endPoint);
         }
 
+        public static async Task SendDiscoveringRequestAsync(
+            this UdpClient client,
+            string userName)
+        {
+            var service = new NetworkService();
+
+            await client.SendBroadcastMessageAsync(
+                service.GetDiscoveryRequestMessage(),
+                userName);
+        }
+
+        public static async Task SendDiscoveryResponseAsync(
+            this UdpClient client,
+            string userName,
+            IPEndPoint endpoint)
+        {
+            var service = new NetworkService();            
+
+            await SendMessageAsync(
+                service.GetDiscoveryResponseMessage(),
+                userName,
+                client,
+                endpoint);
+        }
+
         private static async Task SendMessageAsync(
             string message,
             string userName,

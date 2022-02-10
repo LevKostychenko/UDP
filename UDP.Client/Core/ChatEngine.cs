@@ -33,14 +33,14 @@ namespace UDP.Client.Core
         public void RunChat()
         {
             var receivingTask = Task.Run(
-                () => RunReceivingClient());
+                async () => await RunReceivingClientAsync());
             var sendingTask = Task.Run(
                 async () => await RunSendingClientAsync());
 
             Task.WaitAny(sendingTask, receivingTask);
         }
 
-        private void RunReceivingClient()
+        private async Task RunReceivingClientAsync()
         {
             receiver = new UdpClient(8001);
             receiver.JoinMulticastGroup(
@@ -64,6 +64,23 @@ namespace UDP.Client.Core
                     }
 
                     string message = Encoding.Unicode.GetString(data);
+
+                    if (_networkService
+                        .IsDiscoveryRequestMessage(message))
+                    {
+                        await sender.SendDiscoveryResponseAsync(
+                            _userName,
+                            remoteIp);
+
+                        continue;
+                    }
+
+                    if (_networkService
+                        .IsDiscoveryResponseMessage(message))
+                    {
+                        Console.WriteLine($"{remoteIp.Address}");
+                    }
+
                     Console.WriteLine(message);
                 }
             }
@@ -93,7 +110,7 @@ namespace UDP.Client.Core
 
                     if (IsCommand(message))
                     {
-                        ExecuteCommand(message);
+                        await ExecuteCommandAsync(message);
                         continue;
                     }
 
@@ -112,7 +129,7 @@ namespace UDP.Client.Core
             }
         }
 
-        private void ExecuteCommand(
+        private async Task ExecuteCommandAsync(
             string message)
         {
             var (command, arguments) = ParseCommand(message);
@@ -143,19 +160,8 @@ namespace UDP.Client.Core
                     }
                 case ConsoleCommands.ShowParticipants:
                     {
-                        foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
-                        {
-                            foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
-                            {
-                                if (!ip.IsDnsEligible)
-                                {
-                                    if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                                    {
-                                        // All IP Address in the LAN
-                                    }
-                                }
-                            }
-                        }
+                        await sender.SendDiscoveringRequestAsync(
+                            _userName);
                         break;
                     }
             }
@@ -189,5 +195,7 @@ namespace UDP.Client.Core
                 }
             }
         }
+
+
     }
 }
