@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using UDP.Client.Commands;
 using UDP.Client.Extensions;
 using UDP.Client.Services;
 
@@ -12,6 +16,10 @@ namespace UDP.Client.Core
     {
         private readonly string _userName;
         private readonly NetworkService _networkService;
+        private UdpClient receiver;
+        private UdpClient sender;
+
+        private IList<IPAddress> ignoredAddresses;
 
         public ChatEngine(
             string userName)
@@ -32,9 +40,9 @@ namespace UDP.Client.Core
 
         private void RunReceivingClient()
         {
-            var receiver = new UdpClient(8001);
+            receiver = new UdpClient(8001);
             receiver.JoinMulticastGroup(
-                _networkService.GetMulticastAddress(), 
+                _networkService.GetMulticastAddress(),
                 20);
             receiver.MulticastLoopback = false;
 
@@ -45,6 +53,12 @@ namespace UDP.Client.Core
                 while (true)
                 {
                     var data = receiver.Receive(ref remoteIp);
+
+                    if (ignoredAddresses.Any(
+                        x => x.ToString() == remoteIp.ToString()))
+                    {
+                        continue;
+                    }
 
                     string message = Encoding.Unicode.GetString(data);
                     Console.WriteLine(message);
@@ -62,8 +76,8 @@ namespace UDP.Client.Core
 
         private async Task RunSendingClientAsync()
         {
-            var sender = new UdpClient();
-            
+            sender = new UdpClient();
+
             try
             {
                 await sender.SendBroadcastMessageAsync(
@@ -73,6 +87,13 @@ namespace UDP.Client.Core
                 while (true)
                 {
                     string message = Console.ReadLine();
+
+                    if (IsCommand(message))
+                    {
+                        ExecuteCommand(message);
+                        continue;
+                    }
+
                     await sender.SendMulticastMessageAsync(
                         message,
                         _userName);
@@ -85,6 +106,81 @@ namespace UDP.Client.Core
             finally
             {
                 sender.Close();
+            }
+        }
+
+        private void ExecuteCommand(
+            string message)
+        {
+            var (command, arguments) = ParseCommand(message);
+
+            switch (command.ToUpper())
+            {
+                case ConsoleCommands.MulticastExit:
+                    {
+                        receiver.DropMulticastGroup(
+                            _networkService.GetMulticastAddress());
+                        break;
+                    }
+                case ConsoleCommands.Ignore:
+                    {
+                        AddIgnoredAddresses(arguments);
+                        break;
+                    }
+                case ConsoleCommands.MulticastJoin:
+                    {
+                        receiver.JoinMulticastGroup(
+                            _networkService.GetMulticastAddress(),
+                            20);
+                        receiver.MulticastLoopback = false;
+                        break;
+                    }
+                case ConsoleCommands.ShowParticipants:
+                    {
+                        foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
+                        {
+                            foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
+                            {
+                                if (!ip.IsDnsEligible)
+                                {
+                                    if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                    {
+                                        // All IP Address in the LAN
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+            }
+        }
+
+        private bool IsCommand(
+            string message)
+            => message.StartsWith(@"\");
+
+        private (string, IEnumerable<string>) ParseCommand(
+            string message)
+        {
+            var command = message.Split(" ")[0][1..];
+            var arguments = message.Split(" ")
+                .Skip(1);
+
+            return (command, arguments);
+        }
+
+        private void AddIgnoredAddresses(
+            IEnumerable<string> commandArguments)
+        {
+            foreach (var address in commandArguments)
+            {
+                IPAddress parsedAddress;
+
+                if (IPAddress.TryParse(
+                    address.Trim(), out parsedAddress))
+                {
+                    ignoredAddresses.Add(parsedAddress);
+                }
             }
         }
     }
