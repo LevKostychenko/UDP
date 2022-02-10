@@ -122,11 +122,13 @@ namespace UDP.Client.Core
                     {
                         receiver.DropMulticastGroup(
                             _networkService.GetMulticastAddress());
+                        Console.WriteLine("Exit from multicast.");
                         break;
                     }
                 case ConsoleCommands.Ignore:
                     {
                         AddIgnoredAddresses(arguments);
+                        Console.WriteLine($"{string.Join(',', arguments)} are now ignoring.");
                         break;
                     }
                 case ConsoleCommands.MulticastJoin:
@@ -134,6 +136,7 @@ namespace UDP.Client.Core
                         receiver.JoinMulticastGroup(
                             _networkService.GetMulticastAddress(),
                             20);
+                        Console.WriteLine($"Join to the multicast.");
                         receiver.MulticastLoopback = false;
                         break;
                     }
@@ -159,7 +162,7 @@ namespace UDP.Client.Core
 
         private bool IsCommand(
             string message)
-            => message.StartsWith(@"\");
+            => message.StartsWith(@"/");
 
         private (string, IEnumerable<string>) ParseCommand(
             string message)
