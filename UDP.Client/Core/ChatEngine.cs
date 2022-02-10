@@ -26,6 +26,8 @@ namespace UDP.Client.Core
         {
             _networkService = new NetworkService();
             _userName = userName;
+
+            ignoredAddresses = new List<IPAddress>();
         }
 
         public void RunChat()
