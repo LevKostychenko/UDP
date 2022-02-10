@@ -57,9 +57,8 @@ namespace UDP.Client.Core
                     var data = receiver.Receive(ref remoteIp);
 
                     if (ignoredAddresses.Any(
-                        x => x.ToString()
-                        .Contains(
-                            remoteIp.ToString())))
+                        x => remoteIp.ToString()
+                            .Contains(x.ToString())))
                     {
                         continue;
                     }
