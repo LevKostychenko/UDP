@@ -79,6 +79,7 @@ namespace UDP.Client.Core
                         .IsDiscoveryResponseMessage(message))
                     {
                         Console.WriteLine($"{remoteIp.Address}");
+                        continue;
                     }
 
                     Console.WriteLine(message);

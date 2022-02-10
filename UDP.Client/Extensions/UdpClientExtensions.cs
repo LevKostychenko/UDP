@@ -58,15 +58,19 @@ namespace UDP.Client.Extensions
         public static async Task SendDiscoveryResponseAsync(
             this UdpClient client,
             string userName,
-            IPEndPoint endpoint)
+            IPEndPoint remoteEndPoint)
         {
-            var service = new NetworkService();            
+            var service = new NetworkService();
+
+            var endPoint = new IPEndPoint(
+                remoteEndPoint.Address,
+                service.GetRemotePort());
 
             await SendMessageAsync(
                 service.GetDiscoveryResponseMessage(),
                 userName,
                 client,
-                endpoint);
+                endPoint);
         }
 
         private static async Task SendMessageAsync(
